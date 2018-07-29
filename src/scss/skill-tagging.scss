@@ -1,0 +1,66 @@
+.skillTagging {
+    @include flexbox();
+    @include flex-direction(row);
+    padding: 30px 15px;
+    background-color: $bgGrey;
+    input,
+    textarea {
+        &:-webkit-autofill {
+            background-color: transparent !important;
+        }
+    }
+    .tagItemsToSkill {
+        @include flexbox();
+        @include exactWidth($skillBoxWidth);
+        @include flex(1);
+        @include flex-direction(column);
+        min-height: $skillBoxWidth/2;
+        padding: 10px;
+        background-color: $purple;
+        max-height: 300px;
+        .tagContent {
+            @include flexbox();
+            @include flex(1);
+            @include flex-direction(column);
+            h4 {
+                color: white;
+            }
+            input {
+                width: 100%;
+                border: 0px;
+                padding: 5px 10px;
+            }
+
+            .tagMsg,
+            .tagInfo {
+                background-color: white;
+                margin-top: 10px;
+                font-size: 0.85em;
+                padding: 10px;
+
+                &:empty {
+                    display: none;
+                }
+
+                > strong {
+                    font-size: 1.2em;
+                    text-decoration: underline;
+                    font-style: italic;
+                    font-variant: small-caps;
+                    padding: 2px 5px;
+                    box-shadow: 0px 0px 1px 1px darkgrey;
+                    border-radius: 2px;
+                    text-overflow: ellipsis;
+                    overflow: hidden;
+                    margin-top: 10px;
+                    display: inline-block;
+                }
+            }
+        }
+        .tagActions {
+            @include flexbox();
+            @include flex(0 0 auto);
+            @include justify-content(space-around);
+        }
+    }
+}

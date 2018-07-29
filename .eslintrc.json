@@ -1,0 +1,18 @@
+{
+    "env": {
+        "browser": true,
+        "es6": true,
+        "jquery": true
+    },
+    "parserOptions": {
+        "sourceType": "module",
+        "ecmaVersion": 2017
+    },
+    "extends": "eslint:recommended",
+    "rules": {
+        "no-new-object": "off",
+        "no-new": "error",
+        "no-console": "off",
+        "no-unused-vars": "warn"
+    }
+}

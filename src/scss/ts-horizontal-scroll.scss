@@ -1,0 +1,30 @@
+.ts-horizontal-scroll {
+  @include flexbox();
+  .hSArrowKeys {
+    font-size: 1.7em;
+    cursor: pointer;
+    color: black;
+    &.hSArrowHidden {
+      display: none;
+    }
+    &.hSArrowDisabled {
+      color: lightgrey;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    &:first-of-type {
+      padding-right: 10px;
+    }
+    &:last-of-type {
+      padding-left: 10px;
+    }
+  }
+  #hsScrollArea {
+    @include flexbox();
+    @include flex-direction(row);
+    width: 100%;
+    overflow: auto;
+    padding-bottom: 20px;
+    margin-bottom: -20px;
+  }
+}
