@@ -200,15 +200,6 @@
   .skillListArea .skillTagsArea {
     margin-bottom: 10px;
     overflow: hidden; }
-    .skillListArea .skillTagsArea input.searchSkills {
-      width: 100%;
-      margin-bottom: 10px;
-      border: 0;
-      border-bottom: 1px solid black;
-      background-color: transparent;
-      padding: 5px; }
-      .skillListArea .skillTagsArea input.searchSkills:focus {
-        outline: none; }
     .skillListArea .skillTagsArea .skillTagsWithIcon .skillBox {
       display: -webkit-box;
       display: -moz-box;
