@@ -71,14 +71,9 @@ class Confirmation {
         };
     }
 
-    initHandlers() {
-        $("body").on("click", "#" + this._ref.confirm, this.confirm())
-        .on("click", "#" + this._ref.abort, this.abort());
-    }
-
     destroyHandlers() {
-        $("body").off("click", "#" + this._ref.confirm, this.confirm())
-        .off("click", "#" + this._ref.abort, this.abort());
+        $("body").off("click", "#" + this._ref.confirm, this._confirm)
+        .off("click", "#" + this._ref.abort, this._abort);
     }
 
     show(heading, desc) {
@@ -103,7 +98,7 @@ class Confirmation {
                     ${desc}
                     <div class="modal-footer">
                         <button type="button" class ="btn btn-default" id="${this._ref.confirm}">Confirm</button>
-                        <button type="button" class="btn btn-primary" id="${this._ref.abort}">Cancel</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" id="${this._ref.abort}">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -112,17 +107,30 @@ class Confirmation {
 
     confirm(onConfirm) {
         if (onConfirm) {
-            onConfirm(true);
-            this.hide()
+            $("body").one("click", "#" + this._ref.confirm, (ev) => {
+                ev.preventDefault();
+                this._confirm(onConfirm);
+            })
         } else {
             console.error("onConfirm is not defined");
         }
     }
 
+    _confirm(onConfirm) {
+        onConfirm(true);
+        this.hide();
+    }
+
     abort(onAbort) {
-        if (onAbort) {
-            onAbort(false);
-        }
+        onAbort = onAbort ? onAbort : function() {};
+        $("body").on("click", "#" + this._ref.abort, (e) => {
+            e.preventDefault();
+            this._abort(onAbort);
+        });
+    }
+
+    _abort(onAbort) {
+        onAbort(false);
         this.hide();
     }
 
@@ -130,6 +138,7 @@ class Confirmation {
         $("#" + this._ref.modal).modal("hide").promise().done(() => {
             this.destroyHandlers();
             $("#" + this._ref.modal).remove();
+            $(".modal-backdrop").remove();
         });
     }
 }
@@ -458,6 +467,23 @@ TSSuggest.prototype.acClass = {
         return str.replace(new RegExp(find, 'g'), replace);
     }
 
+    const observableArray = function (array) {
+        return new Proxy(array, {
+            apply: function (target, thisArg, argumentsList) {
+                return thisArg[target].apply(this, argumentsList);
+            },
+            deleteProperty: function (target, property) {
+                console.log("Deleted %s", property);
+                return true;
+            },
+            set: function (target, property, value, receiver) {
+                target[property] = value;
+                console.log("Set %s to %o", property, value);
+                return true;
+            }
+        });
+    };
+
     // Public functions
     u.isEnterKey = isEnterKey;
     u.getMultiLineArr = getMultiLineArr;
@@ -467,13 +493,14 @@ TSSuggest.prototype.acClass = {
     u.spoofAsync = spoofAsync;
     u.getTimeInMS = getTimeInMS;
     u.replaceAll = replaceAll;
+    u.OArray = observableArray;
 })(ProjectNameSpace.Utils);
 
 //#endregion
 
 //#region Text To List Plugin
 
-(function (ttl, u, skills) {
+(function (ttl, u) {
     "use strict";
 
     const ref = {
@@ -572,18 +599,9 @@ TSSuggest.prototype.acClass = {
         _data.allItems.push(...arrObj);
     };
 
-    const _getAvailableSkillItems = function () {
-        const visible = skills.getVisibleMap();
-        return _data.allItems.filter((i) => {
-            if (visible[i.skill.id] || "undefined" === typeof i.skill.id || null === i.skill.id) {
-                return i;
-            }
-        });
-    };
-
     const appendListToUi = function (items) {
         if (!items) {
-            items = _getAvailableSkillItems();
+            items = getAllItems();
         }
         if (items && items.length > 0) {
             // sort list
@@ -694,6 +712,15 @@ TSSuggest.prototype.acClass = {
         $(ref.skillList).removeClass("addDisabled");
     };
 
+    const untagSkill = function (skillId) {
+        _data.allItems.forEach((item) => {
+            if(!!item.skill.id && item.skill.id === skillId) {
+                item.skill.name = null;
+                item.skill.id = null;
+            }
+        });
+    };
+
     ttl.init = init;
     ttl.makeList = initMakeList;
     ttl.update = makeList;
@@ -702,8 +729,9 @@ TSSuggest.prototype.acClass = {
     ttl.enable = enable;
     ttl.refreshUi = appendListToUi;
     ttl.getAllTagged = getAllTagged;
+    ttl.untagSkill = untagSkill;
 
-})(ProjectNameSpace.TSTextToList, ProjectNameSpace.Utils, ProjectNameSpace.Skills);
+})(ProjectNameSpace.TSTextToList, ProjectNameSpace.Utils);
 
 //#endregion
 
@@ -712,7 +740,8 @@ TSSuggest.prototype.acClass = {
 (function (skills, utility, locStorage, txtToList, hScroll, tagBox) {
     "use strict";
 
-    const tempData = [{
+    const tempData = [
+        {
         name: "Java",
         id: "1"
     }, {
@@ -769,7 +798,6 @@ TSSuggest.prototype.acClass = {
     }];
 
     let allSkills = [];
-    let removedSkills = [];
 
     const ref = {
         createSkillBtn: "#createSkill",
@@ -804,15 +832,17 @@ TSSuggest.prototype.acClass = {
     const removePill = function (e) {
         e.preventDefault();
         e.stopPropagation();
-        const elm = utility.getJqElem(e);
-        const skillBox = elm.closest("." + ref.skillBox);
-        const _data = skillBox.data();
-        removedSkills.push({
-            name: _data.skillName,
-            id: _data.skillId
+        const confirm = new Confirmation();
+        confirm.show("Are you sure?", 
+        "This would completely untag all items tagged with this tag. This action cannot be undone.");
+        confirm.confirm(function() {
+            const elm = utility.getJqElem(e);
+            const skillBox = elm.closest("." + ref.skillBox);
+            const skillId = skillBox.data("skillId");
+            skillBox.remove();
+            txtToList.untagSkill(skillId);
+            _showTagItems();
         });
-        skillBox.remove();
-        _showTagItems();
     };
 
     const selectPill = function (e) {
@@ -830,24 +860,66 @@ TSSuggest.prototype.acClass = {
     };
 
     const _showTagItems = function () {
+        // Get SELECTED TAGS first, selected tags have highest priority for being visible
         let chosenSkills = _getActivePills();
         let allowUntagged = false;
+        // Get all list items
         const allItems = txtToList.getAllItems();
+        // If there are no selected tags then get ALL TAGS 
         if (!chosenSkills || Object.keys(chosenSkills).length <= 0) {
-            chosenSkills = _getVisibleMap();
+            chosenSkills = _getSkillsMap();
             allowUntagged = true;
         }
+        // Filter items based on chosen skills
         const itemsToShow = allItems.filter((i) => {
             let condition = false;
             if (allowUntagged) {
                 condition = "undefined" === typeof i.skill.id || null === i.skill.id;
             }
+            // If a skill with valid ID exists or allowUnTagged === true then item is to be displayed
             if (chosenSkills[i.skill.id] || condition) {
                 return i;
             }
         });
         txtToList.refreshUi(itemsToShow);
     };
+
+    const getTagged = function () {
+        const taggedItems = txtToList.getAllTagged();
+        allSkills = allSkills.filter(s => s.id !== null);
+        return taggedItems.reduce((acc, i) => {
+            const isPresent = !!~acc.findIndex(a => a.id === i.skill.id);
+            if (!isPresent) {
+                acc.push(i.skill);
+            }
+            return acc;
+        }, allSkills);
+    };
+
+    // const _getVisible = function () {
+    //     const tagged = getTagged();
+    //     return tagged.filter(x => !~removedSkills.findIndex((s) => {
+    //         return s.id === x.id;
+    //     }));
+    // };
+
+    const _getSkillsMap = function() {
+        const tagged = getTagged();
+        let _temp = {};
+        tagged.forEach((i) => {
+            _temp[i.id] = i.name;
+        });
+        return _temp;
+    };
+
+    // const _getVisibleMap = function () {
+    //     const visible = _getVisible();
+    //     let _temp = {};
+    //     visible.forEach((i) => {
+    //         _temp[i.id] = i.name;
+    //     });
+    //     return _temp;
+    // };
 
     const _getPills = function (elems) {
         let tempHash;
@@ -927,7 +999,7 @@ TSSuggest.prototype.acClass = {
         const dbCall = utility.spoofAsync(tempData, 3000);
         // temp stuff end
         return _dbCallDone(dbCall, loader).promise().done(() => {
-            allSkills.push(newSkill);
+            allSkills.filter(s => s.id !== null).push(newSkill);
         });
     }
 
@@ -950,9 +1022,9 @@ TSSuggest.prototype.acClass = {
         });
     };
 
-    const getSkills = function (inUse) {
-        return inUse ? allSkills : removedSkills;
-    };
+    // const getSkills = function (inUse) {
+    //     return inUse ? allSkills : removedSkills;
+    // };
 
     const get = function (id) {
         let skills = locStorage.get(lsSkillProp);
@@ -966,45 +1038,18 @@ TSSuggest.prototype.acClass = {
         return false;
     };
 
-    const getTagged = function () {
-        const taggedItems = txtToList.getAllTagged();
-        return taggedItems.reduce((acc, i) => {
-            // let hashMap = {};
-            // hashMap[i.skill.id] = i.skill.name;
-            const isPresent = !!~acc.findIndex(a => a.id === i.skill.id);
-            if (!isPresent) {
-                acc.push(i.skill);
-            }
-            return acc;
-        }, allSkills);
-    };
-
-    const _getVisible = function () {
-        const tagged = getTagged();
-        return tagged.filter(x => !~removedSkills.findIndex((s) => {
-            return s.id === x.id;
-        }));
-    };
-
-    const _getVisibleMap = function () {
-        const visible = _getVisible();
-        let _temp = {};
-        visible.forEach((i) => {
-            _temp[i.id] = i.name;
-        });
-        return _temp;
-    };
-
     const makePills = function (scrollToEnd) {
-        const visibleSkills = _getVisible();
+        const visibleSkills = getTagged();
         if (visibleSkills && visibleSkills.length > 0) {
             let skillPills = "";
             visibleSkills.forEach((s) => {
-                skillPills = skillPills +
+                if (s.id && s.id !== null) {
+                    skillPills = skillPills +
                     `<div class="${ref.skillBox}" data-skill-name="${s.name}" data-skill-id="${s.id}">
-                <span>${s.name}</span>
-                <i class="fa fa-close ${ref.removeSkill}"></i>
-            </div>`;
+                        <span>${s.name}</span>
+                        <i class="fa fa-close ${ref.removeSkill}"></i>
+                    </div>`;
+                }
             });
             hScroll.makeContent(skillPills, scrollToEnd);
         }
@@ -1013,11 +1058,9 @@ TSSuggest.prototype.acClass = {
     skills.init = init;
     skills.fetch = fetch;
     skills.create = create;
-    skills.getSkills = getSkills;
     skills.get = get;
     skills.makePills = makePills;
-    skills.getVisible = _getVisible;
-    skills.getVisibleMap = _getVisibleMap;
+    skills.getSkillsMap = _getSkillsMap;
 
 })(ProjectNameSpace.Skills,
     ProjectNameSpace.Utils,
