@@ -65,9 +65,6 @@
         &:focus i.fa-close {
             display: inline-block;
         }
-        &.highlighted {
-            box-shadow: 0px 0px 1px 0px darkgrey;
-        }
         span.fa {
             margin-right: 10px;
             color: $orange;
@@ -90,16 +87,23 @@
             padding-left: 20px;
             margin-top: 5px;
             margin-bottom: 5px;
+
+            &.tagged,
+            &.tagging {
+                label {
+                    &::before {
+                        border-color: $orange;
+                    }
+                }
+            }
+
             input[type='checkbox'] {
                 margin-top: 4px;
                 margin-left: -18px;
                 z-index: 1;
                 cursor: pointer;
                 opacity: 0;
-                &:checked+label::after {
-                    font-family: 'FontAwesome';
-                    content: "\f00c";
-                }
+
                 &:disabled+label {
                     opacity: 0.65;
                     &::before {
@@ -122,12 +126,10 @@
                     content: "";
                     width: 17px;
                     height: 17px;
-                    border: 1px solid $orange;
+                    border: 1px solid $grey1;
                     border-radius: 3px;
-                    background-color: #fff;
-                    -webkit-transition: border 0.15s ease-in-out, color 0.15s ease-in-out;
-                    -o-transition: border 0.15s ease-in-out, color 0.15s ease-in-out;
-                    transition: border 0.15s ease-in-out, color 0.15s ease-in-out;
+                    background-color: transparent;
+                    @include transition(border 0.15s ease-in-out, color 0.15s ease-in-out);
                 }
                 &::after {
                     width: 16px;

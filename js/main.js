@@ -74,6 +74,13 @@ class Confirmation {
     destroyHandlers() {
         $("body").off("click", "#" + this._ref.confirm, this._confirm)
         .off("click", "#" + this._ref.abort, this._abort);
+
+        function cleanUp() {
+            $(".modal-backdrop").remove();
+            $("body").removeClass("modal-open");
+        }
+
+        cleanUp();
     }
 
     show(heading, desc) {
@@ -138,7 +145,6 @@ class Confirmation {
         $("#" + this._ref.modal).modal("hide").promise().done(() => {
             this.destroyHandlers();
             $("#" + this._ref.modal).remove();
-            $(".modal-backdrop").remove();
         });
     }
 }
@@ -419,14 +425,90 @@ TSSuggest.prototype.acClass = {
         return k === 13 || k === "Enter";
     };
 
+    const isRoman = function(s) {
+        s = s.toUpperCase();
+        const x = new RegExp(/^M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/gm);
+        return x.test(s);
+    }
+
     const getMultiLineArr = function (s) {
-        // RegEx that accepts only keyboard characters and replaces everything else with \
-        const newLinerule = new RegExp(/[^ A-Za-z0-9.,?'"!@#$%^&*()-_=+;:<>/\\|}{[\]`~]/g);
-        let x = s.replace(newLinerule, "\n");
-        let a = x && x.length > 0 ? x.split("\n") : null;
+        const self = this;
+        // A separator to determine line breaks for strings items
+        const separator = "_|--|_";
+        //Ordered list type  )--> ( --> represents TAB)
+        const ulWithParan = String.fromCharCode(41) + String.fromCharCode(9);
+        //Ordered list type  .-->
+        const ulWithDot = String.fromCharCode(46) + String.fromCharCode(9);
+
+        function replaceUlPart(s) {
+            const indxOfDot = s.indexOf(ulWithDot);
+            const indxOfParan = s.indexOf(ulWithParan);
+            let exprsn = indxOfDot > -1 ? /.\t/ : (indxOfParan > -1 ? /.\)/ : /(?:)/);
+            // If any of above regex passes then remove matched item from string
+            if (!!~indxOfDot || !!~indxOfParan) {
+                const regxp = new RegExp(exprsn, "gm");
+                s = s.replace(regxp, separator);
+            }
+            
+            const firstSeparator = s.indexOf(separator);
+            // Removing first UL element if its just the bullet
+            if (firstSeparator > -1 && firstSeparator < 2) {
+                s = s.substr((firstSeparator + separator.length), s.length);
+                console.log(s);
+            }
+
+            const q = s.split(separator);
+            if(q && q.length > 0) {
+                q.forEach((w, i, all) => {
+                    const lastSpaceIndx = w.lastIndexOf(" ");
+                    if (lastSpaceIndx > -1) {
+                        const lastWord = w.substr((lastSpaceIndx + 1), w.length);
+                        console.log("lastWord", lastWord);
+                        if (lastWord.length < 3) {
+                            // Support for any numeral or Ordered List item with 2 strings such as 99 or A1
+                            all[i] = w.replace(lastWord, "");
+                        } else {
+                            // Support for roman numbers upto 999
+                            if (lastWord.length < 7) {
+                                const isRoman = self.isRoman(lastWord);
+                                if (isRoman) {
+                                    all[i] = w.replace(lastWord, "");
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            s = q.join(separator);
+            return s;
+        }
+
+        s = replaceUlPart(s);
+
+        // RegEx for non-keyboard characters
+        const keyBoardKeys = new RegExp(/[^ A-Za-z0-9.,?'"!@#$%^&*()-_=+;:<>/\\|}{[\]`~]/g);
+        // Regex for new line, carriage return and other forms of whitespace
+        const newLineRule = new RegExp(/(\r\n|\n|\r|\f|\t|\v| (?= ))/g);
+        let x = s.replace(keyBoardKeys, separator);
+        x = x.replace(newLineRule, separator);
+        let a = x && x.length > 0 ? x.split(separator) : null;
         // Removing extra whitespace 
-        return a.filter(i => (!!i && i !== "" && i !== " "));
+        console.log("Separated string", a);
+        let b = a.filter(i => (!!i && i !== "" && i !== " "));
+        console.log("Filtered Separated string", b);
+        this.readChars(s);
+        return b;
     };
+
+    const readChars = function(s) {
+        const x = s.split("");
+        if(x && x.length > 0) {
+            x.forEach((z) => {
+                console.log("character: |" + z + "| ", "--> charCode: |" + z.charCodeAt(0) + "|" );
+            });
+        }
+    }
 
     const getElem = function (e) {
         const x = e.target || e.srcElement;
@@ -494,6 +576,8 @@ TSSuggest.prototype.acClass = {
     u.getTimeInMS = getTimeInMS;
     u.replaceAll = replaceAll;
     u.OArray = observableArray;
+    u.readChars = readChars;
+    u.isRoman = isRoman;
 })(ProjectNameSpace.Utils);
 
 //#endregion
@@ -628,20 +712,20 @@ TSSuggest.prototype.acClass = {
     };
 
     const _getListItem = function (i) {
-        const isChecked = i.skill.id ? "checked" : "";
+        const isChecked = i.skill.id ? "tagged" : "";
         const skillName = isChecked ? i.skill.name : "";
         const skillId = isChecked ? i.skill.id : "";
         return "" +
-            `<li data-uid="${i.uid}">
-        <div class="itemRow">
-            <div class="${ref.bulletIcon} checkbox-primary checkbox-circle">
-            <input type="checkbox" value="${i.uid}" ${isChecked} data-skill-id="${skillId}" data-skill-name="${skillName}">
-            <label></label>
+        `<li data-uid="${i.uid}">
+            <div class="itemRow">
+            <div class="${ref.bulletIcon} ${isChecked} checkbox-primary checkbox-circle">
+                <input type="checkbox" value="${i.uid}" data-skill-id="${skillId}" data-skill-name="${skillName}">
+                <label></label>
+                </div>
+                <input class="${ref.skillTxt}" type="text" data-orig-val="${i.item}" value="${i.item}" />
+                <i class="fa ${ref.saveIcon}" title="Save"></i>
+                <i class="fa ${ref.delIcon}" title="Remove item"></i>
             </div>
-            <input class="${ref.skillTxt}" type="text" data-orig-val="${i.item}" value="${i.item}" />
-            <i class="fa ${ref.saveIcon}" title="Save"></i>
-            <i class="fa ${ref.delIcon}" title="Remove item"></i>
-        </div>
         </li>`;
     };
 
@@ -1163,13 +1247,11 @@ TSSuggest.prototype.acClass = {
         if (elemChecked) {
             if (selectedItems.indexOf(uid) === -1) {
                 selectedItems.push(uid);
-                itemRow.addClass("highlighted");
             }
         } else {
             const idx = selectedItems.indexOf(uid);
             if (idx > -1) {
                 selectedItems.splice(idx, 1);
-                itemRow.removeClass("highlighted");
             }
         }
 
@@ -1183,7 +1265,7 @@ TSSuggest.prototype.acClass = {
             }
         } else {
             hideTagBox();
-            console.warn("No selected items", selectedItems);
+            // console.warn("No selected items", selectedItems);
         }
     };
 

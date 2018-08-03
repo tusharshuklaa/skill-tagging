@@ -97,11 +97,11 @@
   -moz-flex-direction: row;
   -ms-flex-direction: row;
   flex-direction: row;
-  padding: 30px 15px;
-  background-color: #f6f6f6; }
+  padding: 30px 15px; }
   .skillTagging input:-webkit-autofill,
   .skillTagging textarea:-webkit-autofill {
-    background-color: transparent !important; }
+    background: white !important;
+    -webkit-box-shadow: 0 0 0 30px white inset; }
   .skillTagging .tagItemsToSkill {
     display: -webkit-box;
     display: -moz-box;
@@ -182,7 +182,8 @@
       -moz-justify-content: space-around;
       -ms-justify-content: space-around;
       justify-content: space-around;
-      -ms-flex-pack: space-around; }
+      -ms-flex-pack: space-around;
+      margin-top: 10px; }
 
 .skillListArea {
   -webkit-box-flex: 1;
@@ -257,8 +258,6 @@
     .skillListArea .itemRow:hover i.fa-close,
     .skillListArea .itemRow:focus i.fa-close {
       display: inline-block; }
-    .skillListArea .itemRow.highlighted {
-      box-shadow: 0px 0px 1px 0px darkgrey; }
     .skillListArea .itemRow span.fa {
       margin-right: 10px;
       color: #f57c2b;
@@ -279,15 +278,14 @@
       padding-left: 20px;
       margin-top: 5px;
       margin-bottom: 5px; }
+      .skillListArea .itemRow .checkbox.tagged label::before, .skillListArea .itemRow .checkbox.tagging label::before {
+        border-color: #f57c2b; }
       .skillListArea .itemRow .checkbox input[type='checkbox'] {
         margin-top: 4px;
         margin-left: -18px;
         z-index: 1;
         cursor: pointer;
         opacity: 0; }
-        .skillListArea .itemRow .checkbox input[type='checkbox']:checked + label::after {
-          font-family: 'FontAwesome';
-          content: "\f00c"; }
         .skillListArea .itemRow .checkbox input[type='checkbox']:disabled + label {
           opacity: 0.65; }
           .skillListArea .itemRow .checkbox input[type='checkbox']:disabled + label::before {
@@ -307,10 +305,12 @@
           content: "";
           width: 17px;
           height: 17px;
-          border: 1px solid #f57c2b;
+          border: 1px solid #7F7F7F;
           border-radius: 3px;
-          background-color: #fff;
+          background-color: transparent;
           -webkit-transition: border 0.15s ease-in-out, color 0.15s ease-in-out;
+          -moz-transition: border 0.15s ease-in-out, color 0.15s ease-in-out;
+          -ms-transition: border 0.15s ease-in-out, color 0.15s ease-in-out;
           -o-transition: border 0.15s ease-in-out, color 0.15s ease-in-out;
           transition: border 0.15s ease-in-out, color 0.15s ease-in-out; }
         .skillListArea .itemRow .checkbox label::after {

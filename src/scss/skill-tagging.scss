@@ -2,11 +2,11 @@
     @include flexbox();
     @include flex-direction(row);
     padding: 30px 15px;
-    background-color: $bgGrey;
     input,
     textarea {
         &:-webkit-autofill {
-            background-color: transparent !important;
+            background: white !important;
+            -webkit-box-shadow: 0 0 0 30px white inset;
         }
     }
     .tagItemsToSkill {
@@ -61,6 +61,7 @@
             @include flexbox();
             @include flex(0 0 auto);
             @include justify-content(space-around);
+            margin-top: 10px;
         }
     }
 }
