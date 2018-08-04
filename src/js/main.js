@@ -454,7 +454,6 @@ TSSuggest.prototype.acClass = {
             // Removing first UL element if its just the bullet
             if (firstSeparator > -1 && firstSeparator < 2) {
                 s = s.substr((firstSeparator + separator.length), s.length);
-                console.log(s);
             }
 
             const q = s.split(separator);
@@ -463,7 +462,6 @@ TSSuggest.prototype.acClass = {
                     const lastSpaceIndx = w.lastIndexOf(" ");
                     if (lastSpaceIndx > -1) {
                         const lastWord = w.substr((lastSpaceIndx + 1), w.length);
-                        console.log("lastWord", lastWord);
                         if (lastWord.length < 3) {
                             // Support for any numeral or Ordered List item with 2 strings such as 99 or A1
                             all[i] = w.replace(lastWord, "");
@@ -555,7 +553,7 @@ TSSuggest.prototype.acClass = {
                 console.log("Deleted %s", property);
                 return true;
             },
-            set: function (target, property, value, receiver) {
+            set: function (target, property, value) {
                 target[property] = value;
                 console.log("Set %s to %o", property, value);
                 return true;
@@ -581,7 +579,7 @@ TSSuggest.prototype.acClass = {
 
 //#region Text To List Plugin
 
-(function (ttl, u) {
+(function (ttl, u, skills) {
     "use strict";
 
     const ref = {
@@ -694,6 +692,7 @@ TSSuggest.prototype.acClass = {
             });
             $(_data.ul).html(list);
         } else {
+            $(_data.ul).html("");
             console.warn("No ITEMS found", items);
         }
     };
@@ -768,6 +767,18 @@ TSSuggest.prototype.acClass = {
             const tempArr = _data.allItems.filter(a => a.uid !== uid);
             _data.allItems.length = 0;
             _update(tempArr);
+            // Checking if all items of a skill are removed then remove Skill as well from UI
+            const skillElem = parentLi.find(".checkbox > input");
+            if (skillElem && skillElem.length > 0) {
+                const skillId = skillElem.data("skillId");
+                const skillItems = _data.allItems.filter((i) => {
+                    return i.skill.id === parseInt(skillId);
+                });
+                if (!skillItems || skillItems.length === 0) {
+                    //remove skill from display
+                    skills.removeSkill(skillId, true);
+                }
+            }
         }
     };
 
@@ -812,7 +823,9 @@ TSSuggest.prototype.acClass = {
     ttl.getAllTagged = getAllTagged;
     ttl.untagSkill = untagSkill;
 
-})(ProjectNameSpace.TSTextToList, ProjectNameSpace.Utils);
+})(ProjectNameSpace.TSTextToList, 
+    ProjectNameSpace.Utils, 
+    ProjectNameSpace.Skills);
 
 //#endregion
 
@@ -916,14 +929,16 @@ TSSuggest.prototype.acClass = {
         const confirm = new Confirmation();
         confirm.show("Are you sure?", 
         "This would completely untag all items tagged with this tag. This action cannot be undone.");
-        confirm.confirm(function() {
-            const elm = utility.getJqElem(e);
-            const skillBox = elm.closest("." + ref.skillBox);
-            const skillId = skillBox.data("skillId");
-            skillBox.remove();
-            txtToList.untagSkill(skillId);
-            _showTagItems();
-        });
+        confirm.confirm(_remove(e));
+    };
+
+    const _remove = function(e) {
+        const elm = utility.getJqElem(e);
+        const skillBox = elm.closest("." + ref.skillBox);
+        const skillId = skillBox.data("skillId");
+        skillBox.remove();
+        txtToList.untagSkill(skillId);
+        _showTagItems();
     };
 
     const selectPill = function (e) {
@@ -1136,12 +1151,24 @@ TSSuggest.prototype.acClass = {
         }
     };
 
+    const removeSkill = function(skillId, removeFromUi = false) {
+        allSkills = allSkills.filter(s => s.id !== skillId);
+        if (removeFromUi && skillId && skillId !== "") {
+            const skillElem = $("[data-skill-id=" + skillId + "]");
+            if (skillElem && skillElem.length > 0) {
+                skillElem.remove();
+            }
+        }
+        // _showTagItems();
+    };
+
     skills.init = init;
     skills.fetch = fetch;
     skills.create = create;
     skills.get = get;
     skills.makePills = makePills;
     skills.getSkillsMap = _getSkillsMap;
+    skills.removeSkill = removeSkill;
 
 })(ProjectNameSpace.Skills,
     ProjectNameSpace.Utils,
@@ -1220,6 +1247,7 @@ TSSuggest.prototype.acClass = {
         $(_ref.skillSearchBox).val("");
         selectedItems.length = 0;
         hideApplyBtn();
+        hideTaggedSkill();
         hideTagBox();
         ttl.refreshUi();
         skills.makePills(scrollToEnd);
@@ -1240,7 +1268,6 @@ TSSuggest.prototype.acClass = {
     const updateSelectedInTagBox = function (jqElem) {
         const uid = jqElem.closest("li").data("uid");
         const elemChecked = jqElem.is(":checked");
-        const itemRow = jqElem.closest(".itemRow");
         if (elemChecked) {
             if (selectedItems.indexOf(uid) === -1) {
                 selectedItems.push(uid);
@@ -1262,7 +1289,6 @@ TSSuggest.prototype.acClass = {
             }
         } else {
             hideTagBox();
-            // console.warn("No selected items", selectedItems);
         }
     };
 
