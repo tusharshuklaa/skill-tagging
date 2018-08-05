@@ -11,6 +11,59 @@ const ProjectNameSpace = {
     Skills: {}
 };
 
+//#region Notify
+
+class TSNotify {
+    static success(title, body, time = 5000) {
+        this._validate(time);
+        const _data = this._getHtml(title, body, "alert-success");
+        this._display(_data, time);
+    }
+
+    static error(title, body, time = 5000) {
+        this._validate(time);
+        const _data = this._getHtml(title, body, "alert-danger");
+        this._display(_data, time);
+    }
+
+    static info(title, body, time = 5000) {
+        this._validate(time);
+        const _data = this._getHtml(title, body, "alert-info");
+        this._display(_data, time);
+    }
+
+    static warn(title, body, time = 5000) {
+        this._validate(time);
+        const _data = this._getHtml(title, body, "alert-warning");
+        this._display(_data, time);
+    }
+
+    static _validate(time) {
+        if (typeof time !== "number") {
+            console.error("Time must be in numbers", time);
+        }
+    }
+
+    static _display(data, time) {
+        $("body").append(data);
+        setTimeout(function () {
+            $(data).remove();
+        }, time);
+    }
+
+    static _getHtml(msgTitle, msg, cls) {
+        msg = msg ? msg : "";
+        msgTitle = msgTitle ? msgTitle : "";
+        return `<div class="ts-notify alert alert-dismissible fade in ${cls}">
+            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+            <h4>${msgTitle}</h4>
+            ${msg}
+        </div>`;
+    }
+}
+
+//#endregion
+
 //#region Loader Class
 
 /**
@@ -193,7 +246,14 @@ class TSSuggest {
         });
     }
 
-    _initAutoComplete(self, ev) {
+    refresh(){
+        this.elem.trigger("input");
+        setTimeout(() => {
+            this.elem.trigger("keydown");
+        }, 100);
+    }
+
+    _initAutoComplete(self) {
         let acTxt = self.value;
         this._closeAllLists();
         if (!acTxt) {
@@ -265,9 +325,13 @@ class TSSuggest {
                 this._addActive(x);
             }
 
-            if (key === 13) {
+            // checking for undefined for case when keydown is triggered manually coz in that case there is no KEY logged via event
+            if (key === 13 || undefined === key) {
                 // Enter arrow key
                 e.preventDefault();
+                if (undefined === key) {
+                    this._cf = 0;
+                }
                 if (this._cf > -1) {
                     /*and simulate a click on the "active" item:*/
                     $(x[this._cf]).trigger("click");
@@ -624,6 +688,12 @@ TSSuggest.prototype.acClass = {
             _deleteItem(e);
         }).on("mousedown", "." + ref.saveIcon, (e) => {
             _initInlineSave(e);
+        }).on("keydown", "." + ref.skillTxt, (e) => {
+                const key = e.which || e.keyCode;
+                if(key === 13) {
+                    e.preventDefault();
+                    _initInlineSave(e);
+                }
         }).on("click", "." + ref.bulletIcon, (e) => {
             _data.onBulletClick(e);
         });
@@ -718,7 +788,7 @@ TSSuggest.prototype.acClass = {
                 <input type="checkbox" value="${i.uid}" data-skill-id="${skillId}" data-skill-name="${skillName}">
                 <label></label>
                 </div>
-                <input class="${ref.skillTxt}" type="text" data-orig-val="${i.item}" value="${i.item}" />
+                <div contentEditable="true" class="${ref.skillTxt}" data-orig-val="${i.item}">${i.item}</div>
                 <i class="fa ${ref.saveIcon}" title="Save"></i>
                 <i class="fa ${ref.delIcon}" title="Remove item"></i>
             </div>
@@ -729,13 +799,13 @@ TSSuggest.prototype.acClass = {
         const elem = u.getJqElem(e);
         if (elem) {
             const origSkillData = elem.data("origVal");
-            const skillVal = elem.val();
+            const skillVal = elem.text();
             if (_data.isInlineSave) {
                 _updateInlineItem(elem);
                 _data.isInlineSave = false;
             } else {
                 if (origSkillData !== skillVal) {
-                    elem.val(origSkillData);
+                    elem.text(origSkillData);
                 }
             }
         }
@@ -898,7 +968,8 @@ TSSuggest.prototype.acClass = {
         skillPillsArea: "#skillTagsWithIcon",
         skillBox: "skillBox",
         active: "selectedTag",
-        removeSkill: "skill-remove"
+        removeSkill: "skill-remove",
+        skillHover: "skill-hovered"
     };
 
     const lsSkillProp = "skills";
@@ -911,10 +982,24 @@ TSSuggest.prototype.acClass = {
     const initHandlers = function () {
         $(ref.skillPillsArea).on("click", "." + ref.skillBox, function (e) {
             selectPill(e);
+        }).on("mouseenter", "." + ref.skillBox, function (e) {
+            hoverSkill(e);
+        }).on("mouseleave", "." + ref.skillBox, function (e) {
+            hoverSkill(e, true);
         }).on("click", "." + ref.removeSkill, function (e) {
             removePill(e);
         });
     };
+
+    const hoverSkill = function(e, remove = false) {
+        const elm = utility.getJqElem(e);
+        const skillBox = elm.closest("." + ref.skillBox);
+        if (remove) {
+            skillBox.removeClass(ref.skillHover);
+        } else {
+            skillBox.addClass(ref.skillHover);
+        }
+    }
 
     const initHScroll = function () {
         hScroll.init({
@@ -951,6 +1036,7 @@ TSSuggest.prototype.acClass = {
         const isSelected = skillBox.hasClass(ref.active);
         if (isSelected) {
             skillBox.removeClass(ref.active);
+            skillBox.removeClass(ref.skillHover);
         } else {
             skillBox.addClass(ref.active);
         }
@@ -1067,6 +1153,7 @@ TSSuggest.prototype.acClass = {
         const skillName = $(ref.createSkillBtn).data("tagName");
         _dbCallCreate(skillName).promise().done(() => {
             tagBox.refreshAc();
+            TSNotify.success("Skill created", "<strong>" + skillName + "</strong> has been successfully created.");
         });
     };
 
@@ -1089,7 +1176,7 @@ TSSuggest.prototype.acClass = {
         // temp stuff
         const newSkill = {
             name: item,
-            id: tempData.length
+            id: utility.getTimeInMS()
         };
         //not required when actual db calls are to be made
         tempData.push(newSkill);
@@ -1097,7 +1184,10 @@ TSSuggest.prototype.acClass = {
         const dbCall = utility.spoofAsync(tempData, 3000);
         // temp stuff end
         return _dbCallDone(dbCall, loader).promise().done(() => {
-            allSkills.filter(s => s.id !== null).push(newSkill);
+            if(allSkills && allSkills.length > 0) {
+                allSkills = allSkills.filter(s => s.id !== null);
+            }
+            allSkills.push(newSkill);
         });
     }
 
@@ -1236,7 +1326,9 @@ TSSuggest.prototype.acClass = {
     };
 
     const readAcValAgain = function () {
-        $(_ref.skillSearchBox).trigger("keyup");
+        if(ac) {
+            ac.refresh();
+        }
     }
 
     const updateAc = function (data) {
