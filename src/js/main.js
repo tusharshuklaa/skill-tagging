@@ -929,7 +929,9 @@ TSSuggest.prototype.acClass = {
         const confirm = new Confirmation();
         confirm.show("Are you sure?", 
         "This would completely untag all items tagged with this tag. This action cannot be undone.");
-        confirm.confirm(_remove(e));
+        confirm.confirm(() => {
+            _remove(e);
+        });
     };
 
     const _remove = function(e) {
