@@ -358,7 +358,8 @@
       border: 0px;
       width: 100%;
       padding: 3px 5px;
-      background-color: transparent; }
+      background-color: transparent;
+      text-align: justify; }
       .skillListArea .itemRow .skillItemText:focus,
       .skillListArea .itemRow input[type='text']:focus {
         outline: 0;

@@ -171,6 +171,8 @@
             width: 100%;
             padding: 3px 5px;
             background-color: transparent;
+            text-align: justify;
+            
             &:focus {
                 outline: 0;
                 border-bottom: 1px solid lightgrey;

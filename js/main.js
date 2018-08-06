@@ -824,7 +824,7 @@ TSSuggest.prototype.acClass = {
         if (parentLi && parentLi.length > 0) {
             const uid = parentLi.data("uid");
             let itemToUpdate = _data.allItems.find(i => i.uid === uid);
-            itemToUpdate.item = elem.val();
+            itemToUpdate.item = elem.text();
             elem.data("origVal", itemToUpdate.item);
         }
     };
