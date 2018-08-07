@@ -121,7 +121,8 @@
   .skillTagging input:-webkit-autofill,
   .skillTagging textarea:-webkit-autofill {
     background: white !important;
-    -webkit-box-shadow: 0 0 0 30px white inset; }
+    -webkit-box-shadow: 0 0 0 30px white inset;
+    box-shadow: 0 0 0 30px white inset; }
   .skillTagging .tagItemsToSkill {
     display: -webkit-box;
     display: -moz-box;

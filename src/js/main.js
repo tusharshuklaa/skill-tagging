@@ -689,11 +689,7 @@ TSSuggest.prototype.acClass = {
         }).on("mousedown", "." + ref.saveIcon, (e) => {
             _initInlineSave(e);
         }).on("keydown", "." + ref.skillTxt, (e) => {
-                const key = e.which || e.keyCode;
-                if(key === 13) {
-                    e.preventDefault();
-                    _initInlineSave(e);
-                }
+            _handleItemOnEnter(e);
         }).on("click", "." + ref.bulletIcon, (e) => {
             _data.onBulletClick(e);
         });
@@ -701,6 +697,23 @@ TSSuggest.prototype.acClass = {
 
     const _isPluginConfigured = function () {
         return u.isValid(_data.ul);
+    };
+
+    const _handleItemOnEnter = function(e) {
+        const key = e.which || e.keyCode;
+        const elem = u.getJqElem(e);
+        if (key === 13) {
+            e.preventDefault();
+            const txt = elem.text();
+            if (!txt || txt === "") {
+                const delIcon = elem.siblings("." + ref.delIcon);
+                if (delIcon && delIcon.length > 0) {
+                    delIcon.trigger("click");
+                }
+            } else {
+                _initInlineSave(e);
+            }
+        }
     };
 
     const initMakeList = function (txt) {
@@ -815,8 +828,19 @@ TSSuggest.prototype.acClass = {
         e.preventDefault();
         const elem = u.getJqElem(e);
         const parentLi = elem.parents("li");
-        _data.isInlineSave = true;
-        parentLi.find("." + ref.skillTxt).blur();
+        const input = parentLi.find("." + ref.skillTxt);
+        if (input && input.length > 0) {
+            const txt = input.text();
+            if(txt && txt !== "") {
+                _data.isInlineSave = true;
+                input.trigger("blur");
+            } else {
+                const delIcon = input.siblings("." + ref.delIcon);
+                if (delIcon && delIcon.length > 0) {
+                    delIcon.trigger("click");
+                }
+            }
+        }
     };
 
     const _updateInlineItem = function (elem) {
