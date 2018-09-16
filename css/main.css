@@ -375,3 +375,11 @@
         .skillListArea .itemRow input[type='text']:focus ~ i.fa-close {
           display: inline-block;
           padding: 2px 3.8px; }
+
+.resetList {
+  margin-top: 1em;
+  text-align: center;
+  padding: 1em; }
+  .resetList .reset-all-items {
+    display: inline-block;
+    text-transform: uppercase; }

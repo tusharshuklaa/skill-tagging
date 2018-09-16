@@ -657,7 +657,7 @@ TSSuggest.prototype.acClass = {
 
     let _data = {
         ul: null,
-        allItems: [],
+        allItems: [], // inuse
         isInlineSave: false,
         scrollLeftPrev: 0,
         onBulletClick: null
@@ -742,7 +742,7 @@ TSSuggest.prototype.acClass = {
     };
 
     const _makeMapObject = function (items) {
-        return items.map((a, i) => _getMappedObj(a, i, _data.allItems.length));
+        return items && items.length > 0 ? items.map((a, i) => _getMappedObj(a, i, _data.allItems.length)) : null;
     };
 
     const _getMappedObj = function (a, i, id) {
@@ -758,7 +758,9 @@ TSSuggest.prototype.acClass = {
     };
 
     const _updateAllItems = function (arrObj) {
-        _data.allItems.push(...arrObj);
+        if (arrObj && arrObj.length > 0) {
+            _data.allItems.push(...arrObj);
+        }
     };
 
     const appendListToUi = function (items) {
@@ -776,7 +778,6 @@ TSSuggest.prototype.acClass = {
             $(_data.ul).html(list);
         } else {
             $(_data.ul).html("");
-            console.warn("No ITEMS found", items);
         }
     };
 
@@ -907,6 +908,11 @@ TSSuggest.prototype.acClass = {
         });
     };
 
+    const reset = function() {
+        _data.allItems = [];
+        makeList();
+    }
+
     ttl.init = init;
     ttl.makeList = initMakeList;
     ttl.update = makeList;
@@ -916,6 +922,7 @@ TSSuggest.prototype.acClass = {
     ttl.refreshUi = appendListToUi;
     ttl.getAllTagged = getAllTagged;
     ttl.untagSkill = untagSkill;
+    ttl.reset = reset;
 
 })(ProjectNameSpace.TSTextToList, 
     ProjectNameSpace.Utils, 
@@ -1278,6 +1285,10 @@ TSSuggest.prototype.acClass = {
         // _showTagItems();
     };
 
+    const reset = function() {
+        allSkills = [];
+    }
+
     skills.init = init;
     skills.fetch = fetch;
     skills.create = create;
@@ -1285,6 +1296,7 @@ TSSuggest.prototype.acClass = {
     skills.makePills = makePills;
     skills.getSkillsMap = _getSkillsMap;
     skills.removeSkill = removeSkill;
+    skills.reset = reset;
 
 })(ProjectNameSpace.Skills,
     ProjectNameSpace.Utils,
@@ -1660,12 +1672,17 @@ TSSuggest.prototype.acClass = {
     };
 
     const makeContent = function (elemHtml, scrollToEnd) {
-        scrollToEnd = !!scrollToEnd;
         const sa = $("#" + _hsVars.scrollArea);
-        sa.html(elemHtml);
-        _toggleArrowKeyVisibility();
-        if (scrollToEnd) {
-            _scrollToEnd();
+        if (elemHtml && elemHtml.length > 0) {
+            scrollToEnd = !!scrollToEnd;
+            sa.html(elemHtml);
+            _toggleArrowKeyVisibility();
+            if (scrollToEnd) {
+                _scrollToEnd();
+            }
+        } else {
+            sa.html("");
+            _toggleArrowKeyVisibility();
         }
     };
 
@@ -1679,7 +1696,7 @@ TSSuggest.prototype.acClass = {
 
 //#region SkillTagging
 
-(function (st, u, ttl, tb, skills) {
+(function (st, u, ttl, tb, skills, hs) {
     "use strict";
 
     // DOM Element references (Do Not Pollute with useless DOM Elements)
@@ -1691,7 +1708,8 @@ TSSuggest.prototype.acClass = {
         tagBox: ".tagItemsToSkill",
         tagItemCountBox: "#tagItems",
         tagMsg: "#tagMsg",
-        itemRow: ".itemRow"
+        itemRow: ".itemRow",
+        reset: "#resetAllItems"
     };
 
     // Initial method
@@ -1726,6 +1744,14 @@ TSSuggest.prototype.acClass = {
             e.preventDefault();
             clearInput(true);
         });
+
+        /* 
+            Keep this event listener below only if you need to reset all items on click of a dedicated RESET button else 
+            remove it or modify as per the needed RESET button
+        */
+        $(Elems.reset).on("click", (e) => {
+            resetAll(e);
+        });
     };
 
     // Convert input text into array of list items if multiple lines are available
@@ -1758,14 +1784,23 @@ TSSuggest.prototype.acClass = {
         }
     };
 
+    const resetAll = function(e) {
+        e.preventDefault();
+        ttl.reset();
+        skills.reset();
+        hs.makeContent();
+    }
+
     // Public functions 
     st.init = init;
     st.getSkillPill = getSkillPill;
+    st.reset = resetAll;
 })(ProjectNameSpace.SkillTagging,
     ProjectNameSpace.Utils,
     ProjectNameSpace.TSTextToList,
     ProjectNameSpace.TagBox,
-    ProjectNameSpace.Skills);
+    ProjectNameSpace.Skills,
+    ProjectNameSpace.TSHorizontalScroll);
 
 //#endregion
 

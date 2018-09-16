@@ -190,3 +190,13 @@
         }
     }
 }
+
+.resetList {
+    margin-top: 1em;
+    text-align: center;
+    padding: 1em;
+    .reset-all-items {
+        display: inline-block;
+        text-transform: uppercase;
+    }
+}
